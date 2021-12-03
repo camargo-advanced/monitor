@@ -37,6 +37,10 @@ def get_processes():
             header = False
             continue
         line_split = line.split()
+        try:
+            cmd = line_split[10] + line_split[11]
+        except IndexError:
+            cmd = line_split[10]
         process = {
             #'user':line_split[0], 
             'pid':line_split[1],
@@ -44,7 +48,7 @@ def get_processes():
             #'vsz':line_split[4], 'rss':line_split[5],
             #'tty':line_split[6], 'stat':line_split[7],
             #'start':line_split[8], 'time':line_split[9],
-            'cmd':line_split[10],
+            'cmd':cmd,
         }   
         processes.append(process)
     return processes
