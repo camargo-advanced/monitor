@@ -20,9 +20,9 @@ import json
 
 real_path = os.path.realpath(__file__)
 dir_path = os.path.dirname(real_path)
-db_file = dir_path + '/monitor.json'
-log_file = dir_path + '/monitor.log'
-conf_file = dir_path + '/monitor.conf'
+json_filename = dir_path + '/monitor.json'
+log_filename = dir_path + '/monitor.log'
+conf_filename = dir_path + '/monitor.conf'
 
 def get_processes():
     proc = subprocess.Popen(['ps', '-aux'], 
@@ -38,7 +38,7 @@ def get_processes():
             continue
         line_split = line.split()
         try:
-            cmd = line_split[10] + line_split[11]
+            cmd = line_split[10] + " " + line_split[11]
         except IndexError:
             cmd = line_split[10]
         process = {
@@ -53,74 +53,67 @@ def get_processes():
         processes.append(process)
     return processes
 
-def get_running_processes_for_target(target, processes):
-    runnings = []
-    for process in processes:
-        if process['cmd'].find(target) != -1: 
-            runnings.append(process)
-    return runnings
-
-def get_tracks_for_target(target, tracking):
-    tracks = []
-    for track in tracking:
-        if track['cmd'].find(target) != -1:
-            tracks.append(track)
-    return tracks
+def get_elements_for_target(target, list_of_elements):
+    result_list = []
+    for element in list_of_elements:
+        if element['cmd'].find(target) != -1: 
+            result_list.append(element)
+    return result_list
 
 def update_tracking(targets, processes, tracking):
     for target in targets:                                              
-        runnings = get_running_processes_for_target(target, processes)
-        tracks = get_tracks_for_target(target, tracking)
+        runnings = get_elements_for_target(target, processes)
+        tracks = get_elements_for_target(target, tracking)
         
         # stop tracking not running processes
         for track in tracks:
             if track not in runnings:
+                write_log('Stopped tracking ' + str(track))
                 tracking.remove(track)
-                show_msg('Stopped tracking ' + str(track))
         
         # start tracking new running processes
+        num = len(tracks)
         for running in runnings:
             if running not in tracks:
+                num = num + 1
+                write_log('Started tracking (' + str(num) + ")" + str(running))
                 tracking.append(running)
-                show_msg('Started tracking ' + str(running))
-
+        
 def write_log(msg):
-    with open(log_file, 'a') as f:
-        f.write(msg + '\n')
-        
-def show_msg(msg):
     now = datetime.datetime.now()
-    write_log('---> [' + now.strftime("%c") + '] ' + msg)
+    append_file(log_filename, '---> [' + now.strftime("%c") + '] ' + msg)
 
-def save_db(data):
-    with open(db_file, 'w') as f:
-        json.dump(data, f)
-
-def load_db():
-    try:
-        with open(db_file) as f:
-            data = json.load(f)
-        return data
-    except FileNotFoundError:
-        return []
-
-def load_conf():
-    try:
-        with open(conf_file) as f:
-            data = json.load(f)
-        return data
-    except FileNotFoundError:
-        return []
+def append_file(filename, data):
+    f = open(filename, 'a')
+    f.write(data + '\n')
+    f.flush()
+    f.close()       
         
+def jsondump_file(filename, data):
+    f = open(filename, 'w')
+    json.dump(data, f)
+    f.flush()
+    f.close()    
+
+def jsonload_file(filename):
+    try:
+        f = open(filename, 'r')
+        data = json.load(f)
+        f.flush()
+        f.close()
+        return data
+    except FileNotFoundError:
+        return []
+
 # main code - starting point
-targets = load_conf()
-tracking = load_db()
+targets = jsonload_file(conf_filename)
+tracking = jsonload_file(json_filename)
 
 n = 12 # 12 x 5 seconds = 60 seconds
 while n > 0:
 	n = n - 1
-	show_msg('scanning processes...')
+	write_log('scanning processes...')
 	processes = get_processes()
 	update_tracking(targets, processes, tracking)
-	save_db(tracking)
+	jsondump_file(json_filename, tracking)
 	sleep(5)
