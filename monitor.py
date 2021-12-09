@@ -8,9 +8,9 @@
 #
 # Assumptions:
 #   $sudo crontab -e, and add '* * * * * /<absolute_path>/monitor.py'
-#	$timedatectl list-timezones
+#   $timedatectl list-timezones
 #   $sudo timedatectl set-timezone <your timezone>
-#	$chmod +x /<absolute_path>/monitor.py
+#   $chmod +x /<absolute_path>/monitor.py
 #
 # Tested on Ubuntu 18.04 LTS and 20.04 LTS
 #
